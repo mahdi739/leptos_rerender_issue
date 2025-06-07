@@ -5,7 +5,7 @@ use reactive_stores::{Field, OptionStoreExt, Store, StoreFieldIterator};
 pub struct State {
   #[store(key: usize = |session| session.id)]
   pub sessions: Vec<Session>,
-  pub selected_session: Option<Session>,
+  pub selected_session: Option<Field<Session>>,
 }
 
 #[derive(Default, Store, Debug, Clone, PartialEq, Eq)]
@@ -29,12 +29,12 @@ pub fn App() -> impl IntoView {
     <ul>
       <For each=move || state.sessions() key=|item| item.id().get() let(session)>
         <li on:click=move |_| {
-          state.selected_session().set(Some(session.get()));
+          state.selected_session().set(Some(session.into()));
         }>{session.title()}</li>
       </For>
     </ul>
     <button on:click=move |_| {
-      state.selected_session().map(|ss| ss.title().update(|title| title.push_str("0")));
+      state.selected_session().get().map(|ss| ss.title().update(|title| title.push_str("0")));
     }>"Modify Selected Title"</button>
     <Show when=move || state.selected_session().get().is_some()>
       <Content session={state.selected_session().unwrap()} />
@@ -43,11 +43,12 @@ pub fn App() -> impl IntoView {
 }
 
 #[component]
-pub fn Content(#[prop(into)] session: Field<Session>) -> impl IntoView {
+pub fn Content(#[prop(into)] session: Field<Field<Session>>) -> impl IntoView {
   console_log("Hey!");
   view! {
+    <input type="text" bind:value=session.get().title() />
     {move || {
-      if session.title().with(String::len) == 7 {
+      if session.get().title().with(String::len) == 7 {
         Either::Right(view! { "Title has seven letters" })
       } else {
         Either::Left(view! { "Title doesn't have seven letters" })
